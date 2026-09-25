@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Floor Share — Ar-condicionado</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f7f8fa;color:#15171a;font-family:Arial,sans-serif}main{max-width:720px;margin:auto;padding:20px 14px 50px}.top{display:flex;justify-content:space-between;gap:14px}.eyebrow{font-size:11px;font-weight:700;letter-spacing:.15em;color:#68707a;text-transform:uppercase}.muted,.sub{color:#68707a}h1{margin:5px 0 4px;font-size:28px}h2{margin:0 0 12px}.counter{min-width:74px;text-align:center;border:1px solid #dfe3e8;border-radius:14px;padding:9px}.counter span{display:block;font-size:12px;color:#68707a}.counter strong{font-size:22px}.card{background:#fff;border:1px solid #dfe3e8;border-radius:18px;padding:16px;margin-top:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.field span,.small-label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}input{width:100%;min-height:46px;border:1px solid #dfe3e8;border-radius:12px;padding:10px 12px;font-size:16px;background:#fff}.brand-head{display:flex;gap:10px;align-items:center}.brand-head input{font-weight:700}.brand-total{white-space:nowrap;color:#68707a;font-size:13px;font-weight:700}.btu-row{display:grid;grid-template-columns:1fr 84px;gap:9px;margin-top:9px}.btn{width:100%;min-height:48px;border:0;border-radius:12px;font-size:15px;font-weight:700;padding:11px 14px}.primary{background:#0f766e;color:#fff}.outline{background:#fff;border:1px solid #dfe3e8}.dash{background:#fff;border:1px dashed #aeb5bd;margin-top:10px}.message{min-height:20px;margin:10px 2px 0;color:#68707a;font-size:13px}.hidden{display:none!important}.result{margin-top:28px;border-top:1px solid #dfe3e8;padding-top:22px}.result-title{font-size:25px;font-weight:800;margin-bottom:13px}.metric{background:#eef2f4;border-radius:17px;padding:18px;margin:10px 0}.metric span{display:block;color:#68707a;margin-bottom:5px}.metric strong{font-size:29px}.visit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.visit{background:#eef2f4;border-radius:12px;padding:11px}.visit span{display:block;font-size:11px;color:#68707a}.rank-row{margin:14px 0}.rank-top,.btu-title,.btu-line{display:flex;justify-content:space-between;gap:12px}.rank-top,.btu-title{font-weight:700}.bar{height:9px;border-radius:10px;background:#eef2f4;overflow:hidden;margin-top:6px}.fill{height:100%;background:#74808d}.btu-result{border:1px solid #dfe3e8;border-radius:14px;padding:13px;margin:10px 0}.btu-line{margin-top:7px;font-size:14px}.locked{background:#eef2f4;border:1px solid #dfe3e8;border-radius:16px;padding:15px;margin-top:13px}.section-title{margin-top:26px}.share,.new{margin-top:12px}@media(max-width:520px){.grid,.visit-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><div><div class="eyebrow">Levantamento no PDV</div><h1>Floor Share</h1><div class="sub">Ar-condicionado • aparelhos expostos fora da caixa</div></div><div class="counter"><span>Total</span><strong id="topTotal">0</strong></div></div>
+
+<form id="form"><fieldset id="fields" style="border:0;padding:0;margin:0">
+<section class="card"><h2>Dados da visita</h2><div class="grid">
+<label class="field"><span>Revenda / Loja</span><input id="loja" required placeholder="Ex.: Gazin"></label>
+<label class="field"><span>Filial</span><input id="filial" placeholder="Ex.: Ji-Paraná"></label>
+<label class="field"><span>Promotor(a)</span><input id="promotor" placeholder="Nome"></label>
+<label class="field"><span>Data</span><input id="data" type="date"></label>
+</div></section>
+
+<section class="section-title"><h2>Aparelhos expostos</h2><div class="muted">Informe as capacidades e quantidades encontradas fora da caixa.</div><div id="brands"></div><button type="button" id="addBrand" class="btn dash">+ Adicionar marca</button></section>
+<div id="msg" class="message"></div><button class="btn primary" type="submit">Calcular Floor Share</button>
+</fieldset></form>
+
+<section id="result" class="result hidden">
+<div class="result-title">📊 Resultado</div>
+<div class="metric"><span>Total no piso</span><strong id="rTotal">0</strong></div>
+<div class="metric"><span>TCL</span><strong id="rTcl">0%</strong></div>
+<div class="metric"><span>Líder</span><strong id="rLeader">—</strong></div>
+<div class="section-title"><div class="eyebrow">Dados da visita</div><h2 id="rTitle">Floor Share</h2><div id="visit" class="visit-grid"></div></div>
+<div class="section-title"><h2>Participação por marca</h2><div id="ranking"></div></div>
+<div class="section-title"><h2>Floor Share por BTUs</h2><div id="btuResults"></div></div>
+<button id="share" type="button" class="btn outline share">Compartilhar e finalizar</button>
+<div id="locked" class="locked hidden"><strong>🔒 Levantamento finalizado</strong><div class="muted">Este resultado foi bloqueado nesta sessão.</div><button id="new" type="button" class="btn primary new">Novo levantamento</button></div>
+<div id="shareMsg" class="message"></div>
+</section>
+</main>
+
+<script>
+const $=s=>document.querySelector(s),brands=$("#brands"),defaults=["TCL","Electrolux","Midea","Gree","Elgin","LG","Samsung","Philco"],initial=["9.000","12.000","18.000","24.000"];
+
+function btuRow(box,btu=""){
+let r=document.createElement("div");r.className="btu-row";
+r.innerHTML='<label><span class="small-label">BTUs</span><input class="btu"></label><label><span class="small-label">Qtd.</span><input class="qty" type="number" min="0" value="0"></label>';
+r.querySelector(".btu").value=btu;r.querySelector(".qty").oninput=update;box.appendChild(r)
+}
+
+function addBrand(name="Nova marca"){
+let c=document.createElement("section");c.className="card brand";
+c.innerHTML='<div class="brand-head"><input class="brand-name"><span class="brand-total">Total: 0</span></div><div class="rows"></div><button type="button" class="btn dash add-btu">+ Adicionar BTU</button>';
+c.querySelector(".brand-name").value=name;
+initial.forEach(x=>btuRow(c.querySelector(".rows"),x));
+c.querySelector(".add-btu").onclick=()=>btuRow(c.querySelector(".rows"));
+brands.appendChild(c)
+}
+
+function data(){
+return [...document.querySelectorAll(".brand")].map(c=>{
+let rows=[...c.querySelectorAll(".btu-row")].map(r=>({btu:r.querySelector(".btu").value,qty:+r.querySelector(".qty").value||0}));
+return{name:c.querySelector(".brand-name").value||"Sem nome",rows,total:rows.reduce((a,b)=>a+b.qty,0),card:c}
+})
+}
+
+function update(){
+let t=0;data().forEach(x=>{t+=x.total;x.card.querySelector(".brand-total").textContent="Total: "+x.total});$("#topTotal").textContent=t
+}
+
+const pct=(a,b)=>b?(a*100/b).toFixed(1).replace(".",",")+"%":"0%";
+const brDate=v=>v?v.split("-").reverse().join("/"):"—";
+
+defaults.forEach(addBrand);
+$("#addBrand").onclick=()=>addBrand();
+
+let now=new Date();
+$("#data").value=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
+
+function render(){
+let loja=$("#loja").value.trim(),all=data(),total=all.reduce((a,b)=>a+b.total,0);
+if(!loja){$("#msg").textContent="Informe a revenda / loja.";return false}
+if(!total){$("#msg").textContent="Informe pelo menos um aparelho exposto.";return false}
+$("#msg").textContent="";
+let sorted=all.filter(x=>x.total).sort((a,b)=>b.total-a.total),max=sorted[0].total,leaders=sorted.filter(x=>x.total===max),tcl=all.find(x=>x.name.toUpperCase()==="TCL");
+$("#rTotal").textContent=total;$("#rTcl").textContent=pct(tcl?tcl.total:0,total);$("#rLeader").textContent=leaders.map(x=>x.name+" · "+pct(x.total,total)).join(" / ");$("#rTitle").textContent="Floor Share • "+loja;
+
+$("#visit").innerHTML="";
+[["Filial",$("#filial").value],["Promotor(a)",$("#promotor").value],["Data",brDate($("#data").value)]].forEach(x=>{if(x[1])$("#visit").innerHTML+='<div class="visit"><span>'+x[0]+'</span><strong>'+x[1]+'</strong></div>'});
+
+$("#ranking").innerHTML="";
+sorted.forEach(x=>{$("#ranking").innerHTML+='<div class="rank-row"><div class="rank-top"><span>'+x.name+" · "+x.total+'</span><span>'+pct(x.total,total)+'</span></div><div class="bar"><div class="fill" style="width:'+x.total*100/total+'%"></div></div></div>'});
+
+let groups={};
+all.forEach(m=>m.rows.forEach(x=>{if(x.qty&&x.btu){let k=x.btu.replace(/\D/g,"");groups[k]??={label:x.btu,total:0,brands:[]};groups[k].total+=x.qty;groups[k].brands.push({name:m.name,qty:x.qty})}}));
+$("#btuResults").innerHTML="";
+Object.values(groups).sort((a,b)=>+a.label.replace(/\D/g,"")-+b.label.replace(/\D/g,"")).forEach(g=>{
+let h='<div class="btu-result"><div class="btu-title"><span>'+g.label+' BTUs</span><span>Total: '+g.total+'</span></div>';
+g.brands.sort((a,b)=>b.qty-a.qty).forEach(x=>h+='<div class="btu-line"><span>'+x.name+" · "+x.qty+'</span><strong>'+pct(x.qty,g.total)+'</strong></div>');
+$("#btuResults").innerHTML+=h+"</div>"
+});
+$("#result").classList.remove("hidden");return true
+}
+
+$("#form").onsubmit=e=>{e.preventDefault();if(render())$("#result").scrollIntoView({behavior:"smooth"})};
+
+function shareText(){
+let all=data(),total=all.reduce((a,b)=>a+b.total,0),sorted=all.filter(x=>x.total).sort((a,b)=>b.total-a.total),tcl=all.find(x=>x.name.toUpperCase()==="TCL");
+return "📊 FLOOR SHARE – AR-CONDICIONADO\n\n🏬 Loja: "+$("#loja").value+"\n📍 Filial: "+$("#filial").value+"\n👤 Promotor(a): "+$("#promotor").value+"\n📅 Data: "+brDate($("#data").value)+"\n\nTotal no piso: "+total+"\nTCL: "+pct(tcl?tcl.total:0,total)+"\n\nPARTICIPAÇÃO POR MARCA\n"+sorted.map(x=>"• "+x.name+": "+x.total+" — "+pct(x.total,total)).join("\n")
+}
+
+$("#share").onclick=async()=>{
+if(!render())return;
+try{
+if(navigator.share){
+await navigator.share({title:"Floor Share",text:shareText()});
+$("#fields").disabled=true;$("#share").classList.add("hidden");$("#locked").classList.remove("hidden")
+}else $("#shareMsg").textContent="Compartilhamento direto não disponível."
+}catch(e){}
+};
+
+$("#new").onclick=()=>location.reload();
+</script>
+</body>
+</html>
